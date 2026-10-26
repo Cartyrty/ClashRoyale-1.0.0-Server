@@ -1,0 +1,22 @@
+# The server's style: Google's C++ style with the project's 4-space indent and 120 columns.
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+DerivePointerAlignment: false
+PointerAlignment: Right
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
+IndentCaseLabels: false
+IncludeBlocks: Preserve
+SortIncludes: true
+FixNamespaceComments: true
+SpacesBeforeTrailingComments: 1
+AlignTrailingComments: true
+ReflowComments: true
+BreakBeforeTernaryOperators: true
+AlwaysBreakTemplateDeclarations: No
