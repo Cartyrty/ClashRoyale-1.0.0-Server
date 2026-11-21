@@ -19,10 +19,15 @@ public:
     void setResponderName(const std::string &name) { responderName_ = name; }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeStringReference(message_);
-        stream.writeStringReference(responderName_);
-        stream.writeVInt(state_);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // JoinRequestAllianceStreamEntry (80 bytes): message String* +0x38, state +0x40 (1 by default), responder
+        // name String* +0x48.
+        constexpr int kMessageOffset = 0x38;
+        constexpr int kStateOffset = 0x40;
+        constexpr int kResponderNameOffset = 0x48;
+        library::writePointer(entry + kMessageOffset, library::newString(message_));
+        library::writePointer(entry + kResponderNameOffset, library::newString(responderName_));
+        library::writeInt(entry + kStateOffset, state_);
     }
     void saveFields(json::Value &saved) const override {
         saved["text"] = message_;

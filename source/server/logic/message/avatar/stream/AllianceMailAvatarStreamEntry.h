@@ -14,11 +14,14 @@ public:
     }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeString(message_);
-        stream.writeBoolean(false);
-        stream.writeString(title_);
-        alliance_.encode(stream);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // AllianceMailAvatarStreamEntry (96 bytes): LogicLong* +0x30 (null: none), alliance id LogicLong* +0x38,
+        // alliance name String* +0x40, badge +0x48, message String* +0x50, title String* +0x58.
+        constexpr int kMessageOffset = 0x50;
+        constexpr int kTitleOffset = 0x58;
+        if (message_) library::writePointer(entry + kMessageOffset, library::newString(*message_));
+        if (title_) library::writePointer(entry + kTitleOffset, library::newString(*title_));
+        alliance_.fill(entry, 0x38, 0x40, 0x48);
     }
     void saveFields(json::Value &saved) const override {
         saveOptional(saved, "message", message_);

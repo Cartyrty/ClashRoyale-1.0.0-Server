@@ -1,8 +1,11 @@
 #pragma once
-// The battle log: the account, then its battle reports (newest first).
+// The battle log: the account, then its battle reports (newest first). Encoded by the library's own
+// BattleReportStreamMessage.
+#include "library/LibraryMessage.h"
 #include "logic/message/avatar/stream/BattleReportStreamEntry.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
+#include <cstdint>
 #include <vector>
 
 namespace server {
@@ -11,9 +14,17 @@ public:
     static constexpr int kMessageType = 24413;
 
     void encode() override {
-        stream_.writeLong(accountId_);
-        stream_.writeVInt(int(entries_.size()));
-        for (const auto &entry : entries_) entry.encode(stream_);
+        // BattleReportStreamMessage: account id LogicLong* +0x48, LogicArrayList<BattleReportStreamEntry*>* +0x50.
+        constexpr int kAccountIdOffset = 0x48;
+        constexpr int kEntriesOffset = 0x50;
+        auto message = library::LibraryMessage::create(kMessageType);
+        message.writeLong(kAccountIdOffset, accountId_);
+        const auto list = library::newArrayList();
+        for (const auto &entry : entries_)
+            library::addArrayItem("__ZN14LogicArrayListIP23BattleReportStreamEntryE3addERKS1_", list,
+                                  entry.createLibraryEntry());
+        message.writePointer(kEntriesOffset, list);
+        stream_.writeBytesWithoutLength(message.encode());
     }
     int getMessageType() const override { return kMessageType; }
 

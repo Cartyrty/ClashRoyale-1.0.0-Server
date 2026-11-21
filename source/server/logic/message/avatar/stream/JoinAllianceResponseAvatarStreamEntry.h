@@ -11,11 +11,14 @@ public:
     void setAccepted(bool accepted) { accepted_ = accepted; }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        alliance_.encode(stream);
-        stream.writeString(message_);
-        stream.writeBoolean(accepted_);
-        stream.writeBoolean(false);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // JoinAllianceResponseAvatarStreamEntry (96 bytes): alliance id LogicLong* +0x30, alliance name String* +0x38,
+        // badge +0x40, accepted bool +0x48, LogicLong* +0x50 (null: none), message String* +0x58.
+        constexpr int kAcceptedOffset = 0x48;
+        constexpr int kMessageOffset = 0x58;
+        alliance_.fill(entry, 0x30, 0x38, 0x40);
+        if (message_) library::writePointer(entry + kMessageOffset, library::newString(*message_));
+        library::writeByte(entry + kAcceptedOffset, accepted_ ? 1 : 0);
     }
     void saveFields(json::Value &saved) const override {
         alliance_.save(saved);

@@ -6,6 +6,8 @@
 #include "library/Library.h"
 
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace library {
@@ -26,6 +28,12 @@ public:
 
     std::int32_t readInt(int offset) const;
     void writeInt(int offset, std::int32_t value);
+    bool readBoolean(int offset) const; // a bool member (one byte)
+    void writeBoolean(int offset, bool value);
+    std::optional<std::string> readString(int offset) const; // a String* member: null when it is null
+    void writeString(int offset, const std::optional<std::string> &value); // a new String (null stays null)
+    std::int64_t readLong(int offset) const;                                // a LogicLong* member: 0 when null
+    void writeLong(int offset, std::int64_t value);                          // a new LogicLong
     Ptr readPointer(int offset) const;
     void writePointer(int offset, Ptr value); // the message then owns the object
     Ptr takePointer(int offset);              // reads the field and clears it: the caller owns the object

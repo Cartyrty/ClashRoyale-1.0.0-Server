@@ -2,7 +2,7 @@
 // A card a clan member donated to the player.
 #include "logic/data/GlobalID.h"
 #include "logic/message/avatar/stream/AvatarStreamEntry.h"
-#include "titan/logic/datastream/ByteStreamHelper.h"
+#include "logic/data/LogicDataTables.h"
 
 namespace server {
 class DonationReceivedStreamEntry : public AvatarStreamEntry {
@@ -15,9 +15,12 @@ public:
     }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeVInt(count_);
-        ByteStreamHelper::writeDataReference(stream, spell_);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // DonationReceivedStreamEntry (64 bytes): spell LogicSpellData* +0x30, count +0x38.
+        constexpr int kSpellOffset = 0x30;
+        constexpr int kCountOffset = 0x38;
+        library::writePointer(entry + kSpellOffset, LogicDataTables::getDataById(spell_));
+        library::writeInt(entry + kCountOffset, count_);
     }
     void saveFields(json::Value &saved) const override {
         saved["count"] = count_;

@@ -1,5 +1,6 @@
 #pragma once
-// A join request to an invite-only clan. Payload: Long allianceId, String message.
+// A join request to an invite-only clan. Decoded by the library's own RequestJoinAllianceMessage.
+#include "library/LibraryMessage.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
 #include <cstdint>
@@ -12,8 +13,13 @@ public:
     static constexpr int kMessageType = 14317;
 
     void decode() override {
-        allianceId_ = stream_.readLong();
-        message_ = stream_.readString();
+        // RequestJoinAllianceMessage: alliance id LogicLong* +0x48, message String* +0x50, then an Int +0x58 the
+        // server does not use.
+        constexpr int kAllianceIdOffset = 0x48;
+        constexpr int kMessageOffset = 0x50;
+        const auto message = library::LibraryMessage::decode(kMessageType, stream_.getByteArray());
+        allianceId_ = message.readLong(kAllianceIdOffset);
+        message_ = message.readString(kMessageOffset);
     }
     int getMessageType() const override { return kMessageType; }
 

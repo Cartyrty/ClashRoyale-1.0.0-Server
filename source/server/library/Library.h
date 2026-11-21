@@ -30,6 +30,8 @@ Ptr copyBytes(const std::vector<std::uint8_t> &bytes); // a new buffer (one byte
 std::vector<std::uint8_t> readBytes(Ptr address, std::size_t length);
 std::int32_t readInt(Ptr address);
 void writeInt(Ptr address, std::int32_t value);
+std::uint8_t readByte(Ptr address); // a bool member
+void writeByte(Ptr address, std::uint8_t value);
 Ptr readPointer(Ptr address);
 void writePointer(Ptr address, Ptr value);
 
@@ -80,4 +82,8 @@ int arrayCount(Ptr list);           // 0 for a null list
 Ptr arrayItem(Ptr list, int index); // LogicArrayList<T*>
 void setArrayItem(Ptr list, int index, Ptr value);
 std::int32_t arrayIntItem(Ptr list, int index); // LogicArrayList<int>
+// A new, empty LogicArrayList<T*> (`new LogicArrayList<T*>()`: data 0, capacity 0, count 0). Items go in through the
+// list's own LogicArrayList<T*>::add instantiation (its mangled name), which grows it as the library does.
+Ptr newArrayList();
+void addArrayItem(const char *addFunction, Ptr list, Ptr item);
 } // namespace library

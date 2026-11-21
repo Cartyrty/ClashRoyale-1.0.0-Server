@@ -1,9 +1,9 @@
 #pragma once
 // An entry of a clan's stream (chat, donation requests, join requests, events, challenges), as StreamEntry is on the
-// client. Encoded as StreamEntryFactory reads it (VInt type, StreamEntry::encode, the subclass's fields) and saved as
-// JSON in the clan_entries table.
+// client. Sent as the library's own entry (StreamEntryFactory::createStreamEntryByType, the server's values put in its
+// fields), which the library's stream messages encode; saved as JSON in the clan_entries table.
 #include "game/utils/Json.h"
-#include "titan/logic/datastream/ByteStream.h"
+#include "library/Library.h"
 
 #include <cstdint>
 #include <memory>
@@ -22,7 +22,8 @@ public:
     virtual ~StreamEntry() = default;
     virtual int getStreamEntryType() const = 0;
 
-    void encode(ByteStream &stream) const;
+    // A new library StreamEntry of this type; its owner (a stream message's list) frees it.
+    library::Ptr createLibraryEntry() const;
     json::Value save() const;
     // The entry a saved one describes; null for a type the server does not know.
     static std::unique_ptr<StreamEntry> load(const json::Value &saved);
@@ -43,7 +44,8 @@ public:
     void setRemoved(bool removed) { removed_ = removed; }
 
 protected:
-    virtual void encodeFields(ByteStream &stream) const = 0;
+    // The subclass's own fields of the library entry.
+    virtual void fillLibraryEntry(library::Ptr entry) const = 0;
     virtual void saveFields(json::Value &saved) const = 0;
     virtual void loadFields(const json::Value &saved) = 0;
 

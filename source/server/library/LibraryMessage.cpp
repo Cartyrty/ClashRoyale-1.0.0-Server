@@ -65,6 +65,20 @@ std::int32_t LibraryMessage::readInt(int offset) const { return library::readInt
 void LibraryMessage::writeInt(int offset, std::int32_t value) {
     library::writeInt(message_ + std::uint64_t(offset), value);
 }
+bool LibraryMessage::readBoolean(int offset) const { return library::readByte(message_ + std::uint64_t(offset)) != 0; }
+void LibraryMessage::writeBoolean(int offset, bool value) {
+    library::writeByte(message_ + std::uint64_t(offset), value ? 1 : 0);
+}
+std::optional<std::string> LibraryMessage::readString(int offset) const {
+    const auto string = readPointer(offset);
+    if (!string) return std::nullopt;
+    return library::readString(string);
+}
+void LibraryMessage::writeString(int offset, const std::optional<std::string> &value) {
+    writePointer(offset, value ? newString(*value) : 0);
+}
+std::int64_t LibraryMessage::readLong(int offset) const { return readLogicLong(readPointer(offset)); }
+void LibraryMessage::writeLong(int offset, std::int64_t value) { writePointer(offset, newLogicLong(value)); }
 Ptr LibraryMessage::readPointer(int offset) const { return library::readPointer(message_ + std::uint64_t(offset)); }
 void LibraryMessage::writePointer(int offset, Ptr value) {
     library::writePointer(message_ + std::uint64_t(offset), value);

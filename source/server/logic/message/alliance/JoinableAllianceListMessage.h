@@ -1,5 +1,6 @@
 #pragma once
-// Clans the player can join.
+// Clans the player can join. Encoded by the library's own JoinableAllianceListMessage.
+#include "library/LibraryMessage.h"
 #include "logic/message/alliance/AllianceHeaderEntry.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
@@ -11,8 +12,15 @@ public:
     static constexpr int kMessageType = 24304;
 
     void encode() override {
-        stream_.writeVInt(int(alliances_.size()));
-        for (const auto &entry : alliances_) entry.encode(stream_);
+        // JoinableAllianceListMessage: LogicArrayList<AllianceHeaderEntry*>* +0x48.
+        constexpr int kAlliancesOffset = 0x48;
+        auto message = library::LibraryMessage::create(kMessageType);
+        const auto list = library::newArrayList();
+        for (const auto &entry : alliances_)
+            library::addArrayItem("__ZN14LogicArrayListIP19AllianceHeaderEntryE3addERKS1_", list,
+                                  entry.createLibraryEntry());
+        message.writePointer(kAlliancesOffset, list);
+        stream_.writeBytesWithoutLength(message.encode());
     }
     int getMessageType() const override { return kMessageType; }
 

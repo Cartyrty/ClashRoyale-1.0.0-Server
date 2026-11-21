@@ -27,10 +27,15 @@ public:
     }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeVInt(eventType_);
-        ByteStreamHelper::encodeLogicLong(stream, targetAvatarId_);
-        stream.writeStringReference(targetName_);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // AllianceEventStreamEntry (80 bytes): target avatar id LogicLong* +0x38, target name String* +0x40, event
+        // type +0x48.
+        constexpr int kTargetAvatarIdOffset = 0x38;
+        constexpr int kTargetNameOffset = 0x40;
+        constexpr int kEventTypeOffset = 0x48;
+        library::writePointer(entry + kTargetAvatarIdOffset, library::newLogicLong(targetAvatarId_));
+        library::writePointer(entry + kTargetNameOffset, library::newString(targetName_));
+        library::writeInt(entry + kEventTypeOffset, eventType_);
     }
     void saveFields(json::Value &saved) const override {
         saved["eventType"] = eventType_;

@@ -1,7 +1,8 @@
 #pragma once
 // Another player's profile: their home and avatar. One stream, as VisitedHomeDataMessage::encode writes it (the
 // Boolean packing continues across the parts): VInt, LogicClientHome, owner LogicClientAvatar, Boolean visitor avatar
-// present.
+// present. Encoded by the library's own VisitedHomeDataMessage.
+#include "library/LibraryMessage.h"
 #include "logic/avatar/LogicClientAvatar.h"
 #include "logic/home/LogicClientHome.h"
 #include "titan/logic/message/PiranhaMessage.h"
@@ -15,10 +16,14 @@ public:
     static constexpr int kMessageType = 24113;
 
     void encode() override {
-        stream_.writeVInt(0);
-        LogicClientHome::decode(home_).encode(stream_);
-        LogicClientAvatar::decode(avatar_).encode(stream_);
-        stream_.writeBoolean(false);
+        // VisitedHomeDataMessage: VInt +0x44, LogicClientHome* +0x48, owner LogicClientAvatar* +0x50, visitor
+        // LogicClientAvatar* +0x58 (null: none). The message frees them.
+        constexpr int kHomeOffset = 0x48;
+        constexpr int kOwnerAvatarOffset = 0x50;
+        auto message = library::LibraryMessage::create(kMessageType);
+        message.writePointer(kHomeOffset, LogicClientHome::decode(home_).release());
+        message.writePointer(kOwnerAvatarOffset, LogicClientAvatar::decode(avatar_).release());
+        stream_.writeBytesWithoutLength(message.encode());
     }
     int getMessageType() const override { return kMessageType; }
     int getMessageVersion() const override { return 10; }

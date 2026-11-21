@@ -54,6 +54,8 @@ std::vector<std::uint8_t> readBytes(Ptr address, std::size_t length) {
 }
 std::int32_t readInt(Ptr address) { return std::int32_t(mem::r32(address)); }
 void writeInt(Ptr address, std::int32_t value) { mem::w32(address, std::uint32_t(value)); }
+std::uint8_t readByte(Ptr address) { return mem::read<std::uint8_t>(address); }
+void writeByte(Ptr address, std::uint8_t value) { mem::write<std::uint8_t>(address, value); }
 Ptr readPointer(Ptr address) { return mem::r64(address); }
 void writePointer(Ptr address, Ptr value) { mem::w64(address, value); }
 
@@ -98,5 +100,15 @@ Ptr arrayItem(Ptr list, int index) { return mem::r64(mem::r64(list) + 8 * std::u
 void setArrayItem(Ptr list, int index, Ptr value) { mem::w64(mem::r64(list) + 8 * std::uint64_t(index), value); }
 std::int32_t arrayIntItem(Ptr list, int index) {
     return std::int32_t(mem::r32(mem::r64(list) + 4 * std::uint64_t(index)));
+}
+
+Ptr newArrayList() { return allocate(0x10); }
+
+void addArrayItem(const char *addFunction, Ptr list, Ptr item) {
+    // add(const T &): the item is passed by reference.
+    const auto reference = allocate(8);
+    writePointer(reference, item);
+    call(addFunction, {list, reference});
+    release(reference);
 }
 } // namespace library

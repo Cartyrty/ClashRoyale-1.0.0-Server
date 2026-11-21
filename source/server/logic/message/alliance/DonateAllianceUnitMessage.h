@@ -1,6 +1,7 @@
 #pragma once
-// A card donated to a request. Payload: data reference spell, Long streamEntryId.
-#include "titan/logic/datastream/ByteStreamHelper.h"
+// A card donated to a request. Decoded by the library's own DonateAllianceUnitMessage.
+#include "library/LibraryMessage.h"
+#include "logic/data/LogicData.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
 #include <cstdint>
@@ -11,8 +12,12 @@ public:
     static constexpr int kMessageType = 14310;
 
     void decode() override {
-        spell_ = ByteStreamHelper::readDataReference(stream_);
-        streamEntryId_ = stream_.readLong();
+        // DonateAllianceUnitMessage: spell LogicSpellData* +0x48, request stream entry id LogicLong* +0x50.
+        constexpr int kSpellOffset = 0x48;
+        constexpr int kStreamEntryIdOffset = 0x50;
+        const auto message = library::LibraryMessage::decode(kMessageType, stream_.getByteArray());
+        spell_ = LogicData::getGlobalID(message.readPointer(kSpellOffset));
+        streamEntryId_ = message.readLong(kStreamEntryIdOffset);
     }
     int getMessageType() const override { return kMessageType; }
 

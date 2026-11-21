@@ -1,5 +1,6 @@
 #pragma once
-// Whether the checked name may be taken. Payload: Boolean invalid, Int errorCode, String name.
+// Whether the checked name may be taken. Encoded by the library's own AvatarNameCheckResponseMessage.
+#include "library/LibraryMessage.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
 #include <optional>
@@ -11,9 +12,15 @@ public:
     static constexpr int kMessageType = 20300;
 
     void encode() override {
-        stream_.writeBoolean(invalid_);
-        stream_.writeInt(errorCode_);
-        stream_.writeString(name_);
+        // AvatarNameCheckResponseMessage: invalid bool +0x44, error code +0x48, name String* +0x50.
+        constexpr int kInvalidOffset = 0x44;
+        constexpr int kErrorCodeOffset = 0x48;
+        constexpr int kNameOffset = 0x50;
+        auto message = library::LibraryMessage::create(kMessageType);
+        message.writeBoolean(kInvalidOffset, invalid_);
+        message.writeInt(kErrorCodeOffset, errorCode_);
+        message.writeString(kNameOffset, name_);
+        stream_.writeBytesWithoutLength(message.encode());
     }
     int getMessageType() const override { return kMessageType; }
 

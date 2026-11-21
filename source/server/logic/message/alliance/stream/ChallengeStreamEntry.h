@@ -15,10 +15,12 @@ public:
     bool isOpen() const { return !isRemoved() && !closed_; }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeStringReference(message_);
-        stream.writeBoolean(closed_);
-        stream.writeBoolean(false);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // ChallengeStreamEntry (80 bytes): message String* +0x38, closed bool +0x40, String* +0x48 (null: none).
+        constexpr int kMessageOffset = 0x38;
+        constexpr int kClosedOffset = 0x40;
+        library::writePointer(entry + kMessageOffset, library::newString(message_));
+        library::writeByte(entry + kClosedOffset, closed_ ? 1 : 0);
     }
     void saveFields(json::Value &saved) const override {
         saved["text"] = message_;

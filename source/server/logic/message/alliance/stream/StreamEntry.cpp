@@ -6,25 +6,38 @@
 #include "logic/message/alliance/stream/ChatStreamEntry.h"
 #include "logic/message/alliance/stream/DonateStreamEntry.h"
 #include "logic/message/alliance/stream/JoinRequestAllianceStreamEntry.h"
-#include "titan/logic/datastream/ByteStreamHelper.h"
 
 #include <algorithm>
 
 namespace server {
-// StreamEntry::encode: LogicLong id, LogicLong sender avatar id, LogicLong sender home id, String sender name, VInt
-// sender level, VInt sender role, VInt age in seconds, Boolean removed.
-void StreamEntry::encode(ByteStream &stream) const {
+namespace {
+// StreamEntry: id LogicLong* +0x08, sender avatar id LogicLong* +0x10, sender home id LogicLong* +0x18, sender name
+// String* +0x20, sender level +0x28, sender role +0x2c, age in seconds +0x30, removed bool +0x34.
+constexpr int kIdOffset = 0x08;
+constexpr int kSenderAvatarIdOffset = 0x10;
+constexpr int kSenderHomeIdOffset = 0x18;
+constexpr int kSenderNameOffset = 0x20;
+constexpr int kSenderExpLevelOffset = 0x28;
+constexpr int kSenderRoleOffset = 0x2c;
+constexpr int kAgeSecondsOffset = 0x30;
+constexpr int kRemovedOffset = 0x34;
+} // namespace
+
+library::Ptr StreamEntry::createLibraryEntry() const {
     const auto now = TimeUtil::getMilliseconds();
-    stream.writeVInt(getStreamEntryType());
-    ByteStreamHelper::encodeLogicLong(stream, id_);
-    ByteStreamHelper::encodeLogicLong(stream, senderAvatarId_);
-    ByteStreamHelper::encodeLogicLong(stream, senderAvatarId_);
-    stream.writeStringReference(senderName_);
-    stream.writeVInt(senderExpLevel_);
-    stream.writeVInt(senderRole_);
-    stream.writeVInt(int(std::max<std::int64_t>(0, (now - creationTime_) / TimeUtil::kMillisecondsPerSecond)));
-    stream.writeBoolean(removed_);
-    encodeFields(stream);
+    const auto entry = library::call("__ZN18StreamEntryFactory23createStreamEntryByTypeEi",
+                                     {std::uint64_t(std::uint32_t(getStreamEntryType()))});
+    library::writePointer(entry + kIdOffset, library::newLogicLong(id_));
+    library::writePointer(entry + kSenderAvatarIdOffset, library::newLogicLong(senderAvatarId_));
+    library::writePointer(entry + kSenderHomeIdOffset, library::newLogicLong(senderAvatarId_));
+    library::writePointer(entry + kSenderNameOffset, library::newString(senderName_));
+    library::writeInt(entry + kSenderExpLevelOffset, senderExpLevel_);
+    library::writeInt(entry + kSenderRoleOffset, senderRole_);
+    library::writeInt(entry + kAgeSecondsOffset,
+                      int(std::max<std::int64_t>(0, (now - creationTime_) / TimeUtil::kMillisecondsPerSecond)));
+    library::writeByte(entry + kRemovedOffset, removed_ ? 1 : 0);
+    fillLibraryEntry(entry);
+    return entry;
 }
 
 json::Value StreamEntry::save() const {

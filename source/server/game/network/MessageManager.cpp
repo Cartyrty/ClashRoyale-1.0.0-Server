@@ -429,7 +429,6 @@ void MessageManager::onVisitHome(const VisitHomeMessage &message) {
 // TV Royale: the server has no replays to show.
 void MessageManager::onAskForTVContent() {
     RoyalTVContentMessage content;
-    content.setEntryCount(0);
     sendMessage(content);
 }
 } // namespace server

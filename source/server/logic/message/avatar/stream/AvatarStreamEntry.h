@@ -1,9 +1,9 @@
 #pragma once
-// An entry of a player's inbox (avatar stream): donations received, join request answers, kicks, clan mail. Encoded as
-// AvatarStreamEntryFactory reads it (VInt type, the common fields, the subclass's fields) and saved as JSON in the
-// avatar_social table.
+// An entry of a player's inbox (avatar stream): donations received, join request answers, kicks, clan mail. Sent as the
+// library's own entry (AvatarStreamEntryFactory::createStreamEntryByType, the server's values put in its fields),
+// which the library's avatar stream messages encode; saved as JSON in the avatar_social table.
 #include "game/utils/Json.h"
-#include "titan/logic/datastream/ByteStream.h"
+#include "library/Library.h"
 
 #include <cstdint>
 #include <memory>
@@ -23,7 +23,8 @@ public:
     virtual ~AvatarStreamEntry() = default;
     virtual int getAvatarStreamEntryType() const = 0;
 
-    void encode(ByteStream &stream) const;
+    // A new library AvatarStreamEntry of this type; its owner (an avatar stream message) frees it.
+    library::Ptr createLibraryEntry() const;
     json::Value save() const;
     static std::unique_ptr<AvatarStreamEntry> load(const json::Value &saved); // null for an unknown type
 
@@ -37,17 +38,18 @@ public:
     void setNew(bool isNew) { new_ = isNew; }
 
 protected:
-    virtual void encodeFields(ByteStream &stream) const = 0;
+    // The subclass's own fields of the library entry.
+    virtual void fillLibraryEntry(library::Ptr entry) const = 0;
     virtual void saveFields(json::Value &saved) const = 0;
     virtual void loadFields(const json::Value &saved) = 0;
 
-    // The alliance an entry is about: Long id, String name, badge.
+    // The alliance an entry is about: id LogicLong*, name String*, badge LogicAllianceBadgeData*.
     struct AllianceReference {
         std::int64_t id = 0;
         std::string name;
         int badge = 0;
 
-        void encode(ByteStream &stream) const;
+        void fill(library::Ptr entry, int idOffset, int nameOffset, int badgeOffset) const;
         void save(json::Value &saved) const;
         void load(const json::Value &saved);
     };

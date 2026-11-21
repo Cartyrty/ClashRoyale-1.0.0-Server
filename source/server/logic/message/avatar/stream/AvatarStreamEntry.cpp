@@ -6,24 +6,34 @@
 #include "logic/message/avatar/stream/AllianceMailAvatarStreamEntry.h"
 #include "logic/message/avatar/stream/DonationReceivedStreamEntry.h"
 #include "logic/message/avatar/stream/JoinAllianceResponseAvatarStreamEntry.h"
-#include "titan/logic/datastream/ByteStreamHelper.h"
+#include "logic/data/LogicDataTables.h"
 
 #include <algorithm>
 
 namespace server {
-// Long id, Long sender, String sender name, VInt sender level, VInt age in seconds, Boolean removed, Boolean new
-// (AvatarStreamEntry::decode reads the ids with ByteStream::readLong, not as LogicLongs).
-void AvatarStreamEntry::encode(ByteStream &stream) const {
+// AvatarStreamEntry: id LogicLong* +0x08, sender avatar id LogicLong* +0x10, sender name String* +0x18, sender level
+// +0x20, age in seconds +0x24 (setAgeSeconds), removed bool +0x28, new bool +0x29 (setIsNew; true by default).
+library::Ptr AvatarStreamEntry::createLibraryEntry() const {
+    constexpr int kIdOffset = 0x08;
+    constexpr int kSenderAvatarIdOffset = 0x10;
+    constexpr int kSenderNameOffset = 0x18;
+    constexpr int kSenderExpLevelOffset = 0x20;
+    constexpr int kAgeSecondsOffset = 0x24;
+    constexpr int kRemovedOffset = 0x28;
+    constexpr int kNewOffset = 0x29;
     const auto now = TimeUtil::getMilliseconds();
-    stream.writeVInt(getAvatarStreamEntryType());
-    stream.writeLong(id_);
-    stream.writeLong(senderAvatarId_);
-    stream.writeStringReference(senderName_);
-    stream.writeVInt(senderExpLevel_);
-    stream.writeVInt(int(std::max<std::int64_t>(0, (now - creationTime_) / TimeUtil::kMillisecondsPerSecond)));
-    stream.writeBoolean(removed_);
-    stream.writeBoolean(new_);
-    encodeFields(stream);
+    const auto entry = library::call("__ZN24AvatarStreamEntryFactory23createStreamEntryByTypeEi",
+                                     {std::uint64_t(std::uint32_t(getAvatarStreamEntryType()))});
+    library::writePointer(entry + kIdOffset, library::newLogicLong(id_));
+    library::writePointer(entry + kSenderAvatarIdOffset, library::newLogicLong(senderAvatarId_));
+    library::writePointer(entry + kSenderNameOffset, library::newString(senderName_));
+    library::writeInt(entry + kSenderExpLevelOffset, senderExpLevel_);
+    library::writeInt(entry + kAgeSecondsOffset,
+                      int(std::max<std::int64_t>(0, (now - creationTime_) / TimeUtil::kMillisecondsPerSecond)));
+    library::writeByte(entry + kRemovedOffset, removed_ ? 1 : 0);
+    library::writeByte(entry + kNewOffset, new_ ? 1 : 0);
+    fillLibraryEntry(entry);
+    return entry;
 }
 
 json::Value AvatarStreamEntry::save() const {
@@ -60,10 +70,11 @@ std::unique_ptr<AvatarStreamEntry> AvatarStreamEntry::load(const json::Value &sa
     return entry;
 }
 
-void AvatarStreamEntry::AllianceReference::encode(ByteStream &stream) const {
-    stream.writeLong(id);
-    stream.writeStringReference(name);
-    ByteStreamHelper::writeDataReference(stream, badge);
+void AvatarStreamEntry::AllianceReference::fill(library::Ptr entry, int idOffset, int nameOffset,
+                                                int badgeOffset) const {
+    library::writePointer(entry + std::uint64_t(idOffset), library::newLogicLong(id));
+    library::writePointer(entry + std::uint64_t(nameOffset), library::newString(name));
+    library::writePointer(entry + std::uint64_t(badgeOffset), LogicDataTables::getDataById(badge));
 }
 
 void AvatarStreamEntry::AllianceReference::save(json::Value &saved) const {

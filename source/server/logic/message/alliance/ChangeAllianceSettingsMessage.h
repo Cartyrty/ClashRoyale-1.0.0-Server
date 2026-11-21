@@ -1,7 +1,7 @@
 #pragma once
-// New clan settings. Payload: String description, data reference badge, VInt type, VInt requiredScore, data reference
-// region.
-#include "titan/logic/datastream/ByteStreamHelper.h"
+// New clan settings. Decoded by the library's own ChangeAllianceSettingsMessage.
+#include "library/LibraryMessage.h"
+#include "logic/data/LogicData.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
 #include <optional>
@@ -13,11 +13,19 @@ public:
     static constexpr int kMessageType = 14316;
 
     void decode() override {
-        description_ = stream_.readString();
-        badge_ = ByteStreamHelper::readDataReference(stream_);
-        type_ = stream_.readVInt();
-        requiredScore_ = stream_.readVInt();
-        region_ = ByteStreamHelper::readDataReference(stream_);
+        // ChangeAllianceSettingsMessage: description String* +0x48, badge LogicAllianceBadgeData* +0x50, region
+        // LogicRegionData* +0x58, type +0x60, required score +0x64.
+        constexpr int kDescriptionOffset = 0x48;
+        constexpr int kBadgeOffset = 0x50;
+        constexpr int kRegionOffset = 0x58;
+        constexpr int kTypeOffset = 0x60;
+        constexpr int kRequiredScoreOffset = 0x64;
+        const auto message = library::LibraryMessage::decode(kMessageType, stream_.getByteArray());
+        description_ = message.readString(kDescriptionOffset);
+        badge_ = LogicData::getGlobalID(message.readPointer(kBadgeOffset));
+        type_ = message.readInt(kTypeOffset);
+        requiredScore_ = message.readInt(kRequiredScoreOffset);
+        region_ = LogicData::getGlobalID(message.readPointer(kRegionOffset));
     }
     int getMessageType() const override { return kMessageType; }
 

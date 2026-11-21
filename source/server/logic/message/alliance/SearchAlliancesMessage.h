@@ -1,7 +1,7 @@
 #pragma once
-// A clan search. Payload: String(60) searchString, data reference region, Int minMembers, Int maxMembers, Int minScore,
-// Boolean onlyJoinable.
-#include "titan/logic/datastream/ByteStreamHelper.h"
+// A clan search. Decoded by the library's own SearchAlliancesMessage.
+#include "library/LibraryMessage.h"
+#include "logic/data/LogicData.h"
 #include "titan/logic/message/PiranhaMessage.h"
 
 #include <optional>
@@ -13,12 +13,21 @@ public:
     static constexpr int kMessageType = 14324;
 
     void decode() override {
-        searchString_ = stream_.readString(60);
-        region_ = ByteStreamHelper::readDataReference(stream_);
-        minMembers_ = stream_.readInt();
-        maxMembers_ = stream_.readInt();
-        minScore_ = stream_.readInt();
-        onlyJoinable_ = stream_.readBoolean();
+        // SearchAlliancesMessage: search string String* +0x48, region LogicRegionData* +0x50, min members +0x58, max
+        // members +0x5c (50 by default), min score +0x60, an Int +0x64, only joinable bool +0x68, an Int +0x6c.
+        constexpr int kSearchStringOffset = 0x48;
+        constexpr int kRegionOffset = 0x50;
+        constexpr int kMinMembersOffset = 0x58;
+        constexpr int kMaxMembersOffset = 0x5c;
+        constexpr int kMinScoreOffset = 0x60;
+        constexpr int kOnlyJoinableOffset = 0x68;
+        const auto message = library::LibraryMessage::decode(kMessageType, stream_.getByteArray());
+        searchString_ = message.readString(kSearchStringOffset);
+        region_ = LogicData::getGlobalID(message.readPointer(kRegionOffset));
+        minMembers_ = message.readInt(kMinMembersOffset);
+        maxMembers_ = message.readInt(kMaxMembersOffset);
+        minScore_ = message.readInt(kMinScoreOffset);
+        onlyJoinable_ = message.readBoolean(kOnlyJoinableOffset);
     }
     int getMessageType() const override { return kMessageType; }
 

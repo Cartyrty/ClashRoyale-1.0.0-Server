@@ -34,20 +34,27 @@ void DonateStreamEntry::addDonation(std::int64_t donorAvatarId, int spellGlobalI
     donations_.push_back({donorAvatarId, {spellGlobalId}});
 }
 
-// Int total capacity, Int container count, the containers (Long donor, Int count, the cards), VInt requested card
-// count, the cards, Boolean has message (+ String message).
-void DonateStreamEntry::encodeFields(ByteStream &stream) const {
-    stream.writeInt(totalCapacity_);
-    stream.writeInt(int(donations_.size()));
+// DonateStreamEntry (88 bytes): total capacity +0x38, donations LogicArrayList<DonationContainer*>* +0x40 and
+// requested cards LogicArrayList<const LogicSpellData*>* +0x48 (both made by its constructor), message String* +0x50
+// (null: none). Donations go in through the library's own DonateStreamEntry::addDonation (LogicDonationHelper: one
+// DonationContainer per donor, holding a clone of the donor id).
+void DonateStreamEntry::fillLibraryEntry(library::Ptr entry) const {
+    constexpr int kTotalCapacityOffset = 0x38;
+    constexpr int kRequestedSpellsOffset = 0x48;
+    constexpr int kMessageOffset = 0x50;
+    library::writeInt(entry + kTotalCapacityOffset, totalCapacity_);
     for (const auto &container : donations_) {
-        stream.writeLong(container.donorAvatarId);
-        stream.writeInt(int(container.spells.size()));
-        for (int spell : container.spells) ByteStreamHelper::writeDataReference(stream, spell);
+        const auto donor = library::newLogicLong(container.donorAvatarId);
+        for (int spell : container.spells)
+            library::call("__ZN17DonateStreamEntry11addDonationEPK9LogicLongPK14LogicSpellData",
+                          {entry, donor, LogicDataTables::getDataById(spell)});
+        library::release(donor);
     }
-    stream.writeVInt(int(requestedSpells_.size()));
-    for (int spell : requestedSpells_) ByteStreamHelper::writeDataReference(stream, spell);
-    stream.writeBoolean(!message_.empty());
-    if (!message_.empty()) stream.writeStringReference(message_);
+    const auto requested = library::readPointer(entry + kRequestedSpellsOffset);
+    for (int spell : requestedSpells_)
+        library::addArrayItem("__ZN14LogicArrayListIPK14LogicSpellDataE3addERKS2_", requested,
+                              LogicDataTables::getDataById(spell));
+    if (!message_.empty()) library::writePointer(entry + kMessageOffset, library::newString(message_));
 }
 
 void DonateStreamEntry::saveFields(json::Value &saved) const {

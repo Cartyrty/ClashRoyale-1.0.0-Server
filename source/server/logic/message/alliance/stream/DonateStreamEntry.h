@@ -28,7 +28,7 @@ public:
     void addDonation(std::int64_t donorAvatarId, int spellGlobalId);
 
 protected:
-    void encodeFields(ByteStream &stream) const override;
+    void fillLibraryEntry(library::Ptr entry) const override;
     void saveFields(json::Value &saved) const override;
     void loadFields(const json::Value &saved) override;
 

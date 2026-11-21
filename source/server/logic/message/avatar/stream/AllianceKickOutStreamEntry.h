@@ -11,10 +11,12 @@ public:
     void setMessage(const std::optional<std::string> &message) { message_ = message; }
 
 protected:
-    void encodeFields(ByteStream &stream) const override {
-        stream.writeString(message_);
-        alliance_.encode(stream);
-        stream.writeBoolean(false);
+    void fillLibraryEntry(library::Ptr entry) const override {
+        // AllianceKickOutStreamEntry (88 bytes): message String* +0x30, alliance id LogicLong* +0x38, alliance name
+        // String* +0x40, badge +0x48, LogicLong* +0x50 (null: none).
+        constexpr int kMessageOffset = 0x30;
+        if (message_) library::writePointer(entry + kMessageOffset, library::newString(*message_));
+        alliance_.fill(entry, 0x38, 0x40, 0x48);
     }
     void saveFields(json::Value &saved) const override {
         saveOptional(saved, "message", message_);

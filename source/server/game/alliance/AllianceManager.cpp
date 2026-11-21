@@ -658,7 +658,6 @@ void AllianceManager::onAcceptChallenge(MessageManager &player, const AcceptChal
     if (!challenge || challenger == player.getAccountId() || !opponent || !opponent->getGameMode() ||
         !server_.getSectorManager().startFriendlyBattle(challenger, player.getAccountId())) {
         ChallengeFailedMessage failed;
-        failed.setReason(kGenericFailure);
         player.sendMessage(failed);
         return;
     }
